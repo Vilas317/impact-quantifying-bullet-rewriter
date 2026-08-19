@@ -20,7 +20,7 @@ import {
 import { analyzeEvidence } from "./utils/evidenceGuard";
 
 const POLL_INTERVAL = 2000;
-const MAX_POLLS = 30;
+const MAX_POLLS = 60;
 
 const sleep = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -97,13 +97,15 @@ const App = () => {
    * Poll the SuperDocs job until it reaches
    * awaiting_approval or fails.
    *
-   * supportingEvidence is intentionally passed separately
-   * so the evidence guard can verify metrics that the user
-   * explicitly supplied.
+   * When preserveReview is true, an existing valid
+   * review screen remains available if the new
+   * evidence-backed rewrite fails or times out.
    */
   const pollJob = async (
     newJobId,
     supportingEvidence = "",
+    preserveReview = false,
+    previousReviewData = null,
   ) => {
     for (
       let attempt = 1;
@@ -139,7 +141,7 @@ const App = () => {
             stripHtml(firstChange.old_html);
 
           const proposed =
-            firstChange.new_html || "";
+            stripHtml(firstChange.new_html || "");
 
           const explanation =
             firstChange.ai_explanation || "";
@@ -167,6 +169,7 @@ const App = () => {
 
           setStatus("review");
           setLoading(false);
+          setError("");
 
           return;
         }
@@ -190,36 +193,79 @@ const App = () => {
           requestError,
         );
 
-        setStatus("error");
         setLoading(false);
-        setError(requestError.message);
+
+        /*
+         * If this was an evidence-backed rewrite and
+         * the new job failed, keep the previous review
+         * available instead of forcing the user back
+         * to the beginning.
+         */
+        if (
+          preserveReview &&
+          previousReviewData
+        ) {
+          setReviewData(previousReviewData);
+          setStatus("review");
+        } else {
+          setStatus("error");
+        }
+
+        setError(
+          requestError?.message ||
+            "The rewrite could not be completed.",
+        );
 
         return;
       }
     }
 
-    setStatus("error");
     setLoading(false);
 
+    /*
+     * A timeout should not destroy the existing review
+     * when the user is submitting evidence.
+     */
+    if (
+      preserveReview &&
+      previousReviewData
+    ) {
+      setReviewData(previousReviewData);
+      setStatus("review");
+    } else {
+      setStatus("error");
+    }
+
     setError(
-      "The rewrite took too long to complete. Please try again.",
+      "The rewrite is taking longer than expected. SuperDocs may still be processing it. Please wait a little longer and try again.",
     );
   };
 
   /*
-   * sourceBullet and providedMetric are intentionally separate.
-   *
    * sourceBullet:
    *   The original resume bullet.
    *
    * providedMetric:
    *   Optional verified evidence supplied by the user.
+   *
+   * preserveExistingReview:
+   *   Used when the user submits evidence from the
+   *   review screen. The previous review remains visible
+   *   if the new evidence-backed rewrite fails.
+   *
+   * IMPORTANT:
+   *   Evidence-backed rewrites intentionally use a NEW
+   *   SuperDocs session. The previous session is already
+   *   waiting for human approval and cannot accept another
+   *   async rewrite request.
    */
   const handleRewrite = async (
     sourceBullet,
     providedMetric = "",
+    preserveExistingReview = false,
   ) => {
     const originalBullet = sourceBullet.trim();
+
     const supportingEvidence =
       providedMetric.trim();
 
@@ -231,14 +277,34 @@ const App = () => {
       return;
     }
 
+    /*
+     * Save the current review before starting an
+     * evidence-backed rewrite.
+     *
+     * We deliberately DO NOT reuse the current
+     * SuperDocs session.
+     */
+    const existingReviewData =
+      preserveExistingReview
+        ? reviewData
+        : null;
+
     try {
       setLoading(true);
       setError("");
 
-      setSessionId(null);
-      setJobId(null);
-      setReviewData(null);
-      setEvidenceAnalysis(null);
+      /*
+       * For a normal rewrite, clear the previous state.
+       *
+       * For an evidence-backed rewrite, preserve the
+       * existing review until the new job succeeds.
+       */
+      if (!preserveExistingReview) {
+        setSessionId(null);
+        setJobId(null);
+        setReviewData(null);
+        setEvidenceAnalysis(null);
+      }
 
       setStatus("processing");
 
@@ -254,6 +320,28 @@ const App = () => {
         );
       }
 
+      if (preserveExistingReview) {
+        console.log(
+          "[Impact Rewriter] Evidence-backed rewrite will use a NEW SuperDocs session.",
+        );
+      }
+
+      /*
+       * IMPORTANT:
+       *
+       * Do not pass the existing sessionId here when
+       * generating an evidence-backed rewrite.
+       *
+       * Passing the existing session caused:
+       *
+       *   error_code: "session_busy"
+       *
+       * because the original job is still waiting for
+       * human approval.
+       *
+       * Passing null makes the backend create a new
+       * session for this independent rewrite attempt.
+       */
       const result = await createRewrite({
         bullet: originalBullet,
         metric: supportingEvidence,
@@ -271,12 +359,21 @@ const App = () => {
         );
       }
 
+      /*
+       * Once the new job has successfully been created,
+       * replace the job/session state with the new job.
+       */
       setSessionId(result.sessionId);
       setJobId(result.jobId);
 
       await pollJob(
         result.jobId,
         supportingEvidence,
+        Boolean(
+          preserveExistingReview &&
+            existingReviewData,
+        ),
+        existingReviewData,
       );
     } catch (requestError) {
       console.error(
@@ -284,16 +381,33 @@ const App = () => {
         requestError,
       );
 
-      setStatus("error");
       setLoading(false);
-      setError(requestError.message);
+
+      if (
+        preserveExistingReview &&
+        existingReviewData
+      ) {
+        setReviewData(existingReviewData);
+        setStatus("review");
+      } else {
+        setStatus("error");
+      }
+
+      setError(
+        requestError?.message ||
+          "The rewrite could not be completed.",
+      );
     }
   };
 
   const handleInitialRewrite = async () => {
     setMetric("");
 
-    await handleRewrite(bullet, "");
+    await handleRewrite(
+      bullet,
+      "",
+      false,
+    );
   };
 
   const handleMetricSubmit = async () => {
@@ -303,7 +417,18 @@ const App = () => {
       return;
     }
 
-    await handleRewrite(bullet, evidence);
+    /*
+     * Evidence submission happens from the review page.
+     *
+     * A NEW SuperDocs session is intentionally created
+     * for this request because the original session is
+     * already waiting for human approval.
+     */
+    await handleRewrite(
+      bullet,
+      evidence,
+      true,
+    );
   };
 
   const handleApprove = async () => {
@@ -319,7 +444,9 @@ const App = () => {
       return;
     }
 
-    if (evidenceAnalysis?.requiresEvidence) {
+    if (
+      evidenceAnalysis?.requiresEvidence
+    ) {
       setError(
         "This change requires supporting evidence before it can be approved.",
       );
@@ -343,7 +470,11 @@ const App = () => {
     } catch (requestError) {
       setStatus("error");
       setLoading(false);
-      setError(requestError.message);
+
+      setError(
+        requestError?.message ||
+          "The change could not be approved.",
+      );
     }
   };
 
@@ -376,7 +507,11 @@ const App = () => {
     } catch (requestError) {
       setStatus("error");
       setLoading(false);
-      setError(requestError.message);
+
+      setError(
+        requestError?.message ||
+          "The change could not be rejected.",
+      );
     }
   };
 
