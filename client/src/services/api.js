@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL =
+  "https://impact-quantifying-bullet-rewriter.onrender.com/api";
 
 const request = async (url, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${url}`, {
