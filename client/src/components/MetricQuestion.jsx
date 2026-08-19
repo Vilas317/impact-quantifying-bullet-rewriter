@@ -1,4 +1,7 @@
-import { BarChart3, ShieldAlert } from "lucide-react";
+import {
+  BarChart3,
+  ShieldAlert,
+} from "lucide-react";
 
 const MetricQuestion = ({
   metric,
@@ -25,11 +28,14 @@ const MetricQuestion = ({
         </div>
 
         <div>
-          <h3>Evidence required before approval</h3>
+          <h3>
+            Evidence required before approval
+          </h3>
 
           <p>
-            The proposed rewrite contains claims that are not
-            supported by the original bullet.
+            The proposed rewrite contains claims
+            that are not supported by the original
+            bullet.
           </p>
         </div>
       </div>
@@ -61,23 +67,28 @@ const MetricQuestion = ({
         id="metric"
         type="text"
         value={metric}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
         placeholder="Example: handled 10,000 requests/day with 99.9% uptime"
         maxLength={500}
         disabled={loading}
       />
 
       <p className="metric-help">
-        Only provide information that is true and that you
-        can support from your actual experience.
+        Only provide information that is true
+        and that you can support from your actual
+        experience.
       </p>
 
       <button
-        type="submit"
+        type="button"
         className="primary-button"
         onClick={handleSubmit}
         disabled={!metric.trim() || loading}
       >
+        <BarChart3 size={16} />
+
         {loading
           ? "Generating revised bullet..."
           : "Generate evidence-backed bullet"}

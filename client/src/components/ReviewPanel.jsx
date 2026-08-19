@@ -7,6 +7,7 @@ import {
 
 const stripHtml = (html = "") => {
   const parser = new DOMParser();
+
   const document = parser.parseFromString(
     html,
     "text/html",
@@ -32,7 +33,9 @@ const ReviewPanel = ({
             Human review
           </span>
 
-          <h2>Review the proposed change</h2>
+          <h2>
+            Review the proposed change
+          </h2>
         </div>
 
         <div
@@ -43,9 +46,9 @@ const ReviewPanel = ({
           }
         >
           {evidenceRequired ? (
-            <ShieldAlert size={16} />
+            <ShieldAlert size={15} />
           ) : (
-            <ShieldCheck size={16} />
+            <ShieldCheck size={15} />
           )}
 
           {evidenceRequired
@@ -78,7 +81,9 @@ const ReviewPanel = ({
 
       {explanation && (
         <div className="explanation">
-          <strong>AI explanation</strong>
+          <strong>
+            AI explanation
+          </strong>
 
           <p>{explanation}</p>
         </div>
@@ -91,9 +96,10 @@ const ReviewPanel = ({
           </strong>
 
           <span>
-            The proposal contains an impact claim that is not
-            supported by the source bullet. Add evidence or a
-            verified metric below before approving.
+            The proposal contains an impact claim
+            that is not supported by the source
+            bullet. Add evidence or a verified
+            metric below before approving.
           </span>
         </div>
       ) : (
@@ -103,8 +109,8 @@ const ReviewPanel = ({
           </strong>
 
           <span>
-            You are still responsible for checking the
-            proposed wording before approving it.
+            You are still responsible for checking
+            the proposed wording before approving it.
           </span>
         </div>
       )}
@@ -116,7 +122,7 @@ const ReviewPanel = ({
           onClick={onReject}
           disabled={loading}
         >
-          <XCircle size={17} />
+          <XCircle size={16} />
           Reject
         </button>
 
@@ -124,14 +130,16 @@ const ReviewPanel = ({
           type="button"
           className="primary-button"
           onClick={onApprove}
-          disabled={loading || evidenceRequired}
+          disabled={
+            loading || evidenceRequired
+          }
           title={
             evidenceRequired
               ? "Add supporting evidence before approving this change."
               : ""
           }
         >
-          <CheckCircle2 size={17} />
+          <CheckCircle2 size={16} />
 
           {evidenceRequired
             ? "Evidence required"

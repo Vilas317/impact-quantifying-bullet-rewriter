@@ -1,6 +1,15 @@
-import { ArrowRight, FileText } from "lucide-react";
+import {
+  ArrowRight,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 
-const BulletInput = ({ bullet, onChange, onSubmit, loading }) => {
+const BulletInput = ({
+  bullet,
+  onChange,
+  onSubmit,
+  loading,
+}) => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -12,15 +21,20 @@ const BulletInput = ({ bullet, onChange, onSubmit, loading }) => {
   };
 
   return (
-    <form className="input-card" onSubmit={handleSubmit}>
+    <form
+      className="input-card"
+      onSubmit={handleSubmit}
+    >
       <div className="section-label">
-        <FileText size={17} />
+        <FileText size={16} />
         Resume bullet
       </div>
 
       <textarea
         value={bullet}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
         placeholder="Example: Developed REST APIs using Node.js and Express."
         rows={5}
         maxLength={500}
@@ -35,9 +49,21 @@ const BulletInput = ({ bullet, onChange, onSubmit, loading }) => {
           className="primary-button"
           disabled={!bullet.trim() || loading}
         >
-          {loading ? "Analyzing..." : "Rewrite bullet"}
+          {loading ? (
+            "Analyzing..."
+          ) : (
+            <>
+              Rewrite bullet
+              <ArrowRight size={17} />
+            </>
+          )}
 
-          {!loading && <ArrowRight size={17} />}
+          {!loading && (
+            <Sparkles
+              size={14}
+              className="button-sparkle"
+            />
+          )}
         </button>
       </div>
     </form>
