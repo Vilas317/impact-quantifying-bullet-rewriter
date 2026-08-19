@@ -10,7 +10,7 @@ const getApiKey = () => {
   return apiKey;
 };
 
-const parseResponse = async (response) => {
+const parseResponse = async (response, path) => {
   const responseText = await response.text();
 
   let data;
@@ -22,13 +22,48 @@ const parseResponse = async (response) => {
   }
 
   if (!response.ok) {
-    const message =
-      typeof data === "object" && data?.detail
-        ? data.detail
-        : `SuperDocs request failed with status ${response.status}.`;
+  console.error("[SuperDocs] API error:", {
+    path,
+    status: response.status,
+    statusText: response.statusText,
+    response: data,
+  });
 
-    throw new Error(message);
+  let message;
+
+  if (typeof data === "string") {
+    message = data;
+  } else if (data?.detail) {
+    message =
+      typeof data.detail === "string"
+        ? data.detail
+        : JSON.stringify(data.detail);
+  } else if (data?.message) {
+    message =
+      typeof data.message === "string"
+        ? data.message
+        : JSON.stringify(data.message);
+  } else if (data?.error) {
+    message =
+      typeof data.error === "string"
+        ? data.error
+        : JSON.stringify(data.error);
+  } else if (data) {
+    message = JSON.stringify(data);
   }
+
+  console.error("========== SUPERDOCS DEBUG ==========");
+  console.error("STATUS:", response.status);
+  console.error("DATA:", data);
+  console.error("DETAIL TYPE:", typeof data?.detail);
+  console.error("MESSAGE:", message);
+  console.error("====================================");
+
+  throw new Error(
+    message ||
+      `SuperDocs request failed with status ${response.status}.`,
+  );
+}
 
   return data;
 };
@@ -43,7 +78,7 @@ const superdocsRequest = async (path, options = {}) => {
     },
   });
 
-  return parseResponse(response);
+  return parseResponse(response, path);
 };
 
 export const createRewriteJob = async ({
@@ -51,6 +86,10 @@ export const createRewriteJob = async ({
   sessionId,
   documentHtml,
 }) => {
+  if (!sessionId || typeof sessionId !== "string") {
+    throw new Error("A valid session ID is required.");
+  }
+
   return superdocsRequest("/v1/chat/async", {
     method: "POST",
     body: JSON.stringify({
@@ -63,10 +102,13 @@ export const createRewriteJob = async ({
 };
 
 export const getJobStatus = async (jobId) => {
-  return superdocsRequest(`/v1/jobs/${encodeURIComponent(jobId)}`, {
-    method: "GET",
-    headers: {},
-  });
+  return superdocsRequest(
+    `/v1/jobs/${encodeURIComponent(jobId)}`,
+    {
+      method: "GET",
+      headers: {},
+    },
+  );
 };
 
 export const approveChanges = async ({
@@ -75,14 +117,23 @@ export const approveChanges = async ({
   changeId,
   approved,
 }) => {
+  if (!sessionId || typeof sessionId !== "string") {
+    throw new Error("A valid session ID is required.");
+  }
+
   return superdocsRequest(
     `/v1/chat/${encodeURIComponent(sessionId)}/approve`,
     {
       method: "POST",
       body: JSON.stringify({
         job_id: jobId,
-        change_id: changeId,
         approved,
+        changes: [
+          {
+            change_id: changeId,
+            approved,
+          },
+        ],
       }),
     },
   );

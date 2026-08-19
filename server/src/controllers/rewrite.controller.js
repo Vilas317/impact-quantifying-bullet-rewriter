@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { buildRewritePrompt } from "../prompts/rewrite.prompt.js";
 import {
   approveChanges,
@@ -6,7 +7,7 @@ import {
 } from "../services/superdocs.service.js";
 
 const createSessionId = () => {
-  return `bullet-rewrite-${Date.now()}`;
+  return `bullet-rewrite-${crypto.randomUUID()}`;
 };
 
 export const createRewrite = async (req, res, next) => {
@@ -19,6 +20,16 @@ export const createRewrite = async (req, res, next) => {
       });
     }
 
+    if (
+      sessionId !== undefined &&
+      sessionId !== null &&
+      typeof sessionId !== "string"
+    ) {
+      return res.status(400).json({
+        message: "sessionId must be a string.",
+      });
+    }
+
     const documentHtml = `<p>${escapeHtml(bullet.trim())}</p>`;
 
     const message = buildRewritePrompt({
@@ -26,7 +37,10 @@ export const createRewrite = async (req, res, next) => {
       metric: typeof metric === "string" ? metric.trim() : "",
     });
 
-    const resolvedSessionId = sessionId || createSessionId();
+    const resolvedSessionId =
+      typeof sessionId === "string" && sessionId.trim()
+        ? sessionId.trim()
+        : createSessionId();
 
     const job = await createRewriteJob({
       message,
@@ -60,6 +74,12 @@ export const reviewRewrite = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
     const { jobId, changeId, approved } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        message: "sessionId is required.",
+      });
+    }
 
     if (!jobId) {
       return res.status(400).json({
