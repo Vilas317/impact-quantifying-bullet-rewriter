@@ -1,6 +1,6 @@
 # Impact-Quantifying Bullet Rewriter
 
-An evidence-preserving resume bullet rewriter that transforms duty-based resume bullets into concise, outcome-oriented bullets — without fabricating metrics, achievements, or business impact.
+An evidence-preserving resume bullet rewriter that transforms duty-based resume bullets into concise, outcome-oriented bullets without fabricating metrics, achievements, or business impact.
 
 ## Features
 
