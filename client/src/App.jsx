@@ -10,6 +10,7 @@ import BulletInput from "./components/BulletInput";
 import LoadingState from "./components/LoadingState";
 import MetricQuestion from "./components/MetricQuestion";
 import ReviewPanel from "./components/ReviewPanel";
+import RoleFamilyMatrix from "./components/RoleFamilyMatrix";
 
 import {
   createRewrite,
@@ -76,6 +77,8 @@ const getActiveStep = (status) => {
 };
 
 const App = () => {
+  const [activeTool, setActiveTool] = useState("rewriter");
+
   const [bullet, setBullet] = useState("");
   const [metric, setMetric] = useState("");
 
@@ -551,219 +554,273 @@ const App = () => {
           </div>
         </div>
 
-        {(status !== "idle" || bullet) && (
+        <nav
+          className="tool-switcher"
+          aria-label="Application tools"
+        >
           <button
             type="button"
-            className="reset-button"
-            onClick={reset}
+            className={
+              activeTool === "rewriter"
+                ? "tool-switcher-button active"
+                : "tool-switcher-button"
+            }
+            onClick={() =>
+              setActiveTool("rewriter")
+            }
           >
-            <RotateCcw size={15} />
-            Start over
+            <Sparkles size={14} />
+            Bullet Rewriter
           </button>
-        )}
+
+          <button
+            type="button"
+            className={
+              activeTool === "matrix"
+                ? "tool-switcher-button active"
+                : "tool-switcher-button"
+            }
+            onClick={() =>
+              setActiveTool("matrix")
+            }
+          >
+            <FileCheck2 size={14} />
+            Resume Matrix
+          </button>
+        </nav>
+
+        {activeTool === "rewriter" &&
+          (status !== "idle" || bullet) && (
+            <button
+              type="button"
+              className="reset-button"
+              onClick={reset}
+            >
+              <RotateCcw size={15} />
+              Start over
+            </button>
+          )}
       </header>
 
       <main className="main">
-        <section className="hero">
-          <div className="eyebrow">
-            <span className="eyebrow-icon">
-              <FileCheck2 size={14} />
-            </span>
-
-            Evidence-preserving AI editing
-          </div>
-
-          <h1>
-            Stronger bullets.{" "}
-            <span>Truthful impact.</span>
-          </h1>
-
-          <p>
-            Rewrite software engineering resume bullets
-            into concise, outcome-focused statements
-            without inventing achievements or metrics.
-          </p>
-        </section>
-
-        <nav
-          className="workflow"
-          aria-label="Rewrite workflow"
-        >
-          {WORKFLOW_STEPS.map((step, index) => {
-            const isCompleted =
-              step.number < activeStep;
-
-            const isActive =
-              step.number === activeStep;
-
-            return (
-              <div
-                className="workflow-item"
-                key={step.label}
-              >
-                <div
-                  className={[
-                    "workflow-step",
-                    isActive
-                      ? "workflow-step-active"
-                      : "",
-                    isCompleted
-                      ? "workflow-step-completed"
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {isCompleted ? (
-                    <Check size={13} />
-                  ) : (
-                    step.number
-                  )}
-                </div>
-
-                <span
-                  className={
-                    isActive
-                      ? "workflow-label workflow-label-active"
-                      : "workflow-label"
-                  }
-                >
-                  {step.label}
+        {activeTool === "matrix" ? (
+          <RoleFamilyMatrix />
+        ) : (
+          <>
+            <section className="hero">
+              <div className="eyebrow">
+                <span className="eyebrow-icon">
+                  <FileCheck2 size={14} />
                 </span>
 
-                {index <
-                  WORKFLOW_STEPS.length - 1 && (
-                  <div
-                    className={[
-                      "workflow-line",
-                      isCompleted
-                        ? "workflow-line-completed"
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  />
-                )}
+                Evidence-preserving AI editing
               </div>
-            );
-          })}
-        </nav>
 
-        <section className="workspace">
-          {status === "idle" && (
-            <BulletInput
-              bullet={bullet}
-              onChange={setBullet}
-              onSubmit={handleInitialRewrite}
-              loading={loading}
-            />
-          )}
+              <h1>
+                Stronger bullets.{" "}
+                <span>Truthful impact.</span>
+              </h1>
 
-          {status === "processing" && (
-            <LoadingState />
-          )}
+              <p>
+                Rewrite software engineering resume
+                bullets into concise, outcome-focused
+                statements without inventing
+                achievements or metrics.
+              </p>
+            </section>
 
-          {status === "review" && reviewData && (
-            <>
-              <ReviewPanel
-                original={reviewData.original}
-                proposed={reviewData.proposed}
-                explanation={
-                  reviewData.explanation
-                }
-                onApprove={handleApprove}
-                onReject={handleReject}
-                loading={loading}
-                evidenceRequired={Boolean(
-                  evidenceAnalysis?.requiresEvidence,
-                )}
-              />
+            <nav
+              className="workflow"
+              aria-label="Rewrite workflow"
+            >
+              {WORKFLOW_STEPS.map(
+                (step, index) => {
+                  const isCompleted =
+                    step.number < activeStep;
 
-              {showEvidenceQuestion && (
-                <MetricQuestion
-                  metric={metric}
-                  onChange={setMetric}
-                  onSubmit={handleMetricSubmit}
+                  const isActive =
+                    step.number === activeStep;
+
+                  return (
+                    <div
+                      className="workflow-item"
+                      key={step.label}
+                    >
+                      <div
+                        className={[
+                          "workflow-step",
+                          isActive
+                            ? "workflow-step-active"
+                            : "",
+                          isCompleted
+                            ? "workflow-step-completed"
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        {isCompleted ? (
+                          <Check size={13} />
+                        ) : (
+                          step.number
+                        )}
+                      </div>
+
+                      <span
+                        className={
+                          isActive
+                            ? "workflow-label workflow-label-active"
+                            : "workflow-label"
+                        }
+                      >
+                        {step.label}
+                      </span>
+
+                      {index <
+                        WORKFLOW_STEPS.length - 1 && (
+                        <div
+                          className={[
+                            "workflow-line",
+                            isCompleted
+                              ? "workflow-line-completed"
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        />
+                      )}
+                    </div>
+                  );
+                },
+              )}
+            </nav>
+
+            <section className="workspace">
+              {status === "idle" && (
+                <BulletInput
+                  bullet={bullet}
+                  onChange={setBullet}
+                  onSubmit={handleInitialRewrite}
                   loading={loading}
-                  unsupportedClaims={
-                    evidenceAnalysis?.unsupportedClaims ||
-                    []
-                  }
                 />
               )}
-            </>
-          )}
 
-          {status === "completed" && (
-            <div className="success-card">
-              <div className="success-icon">
-                <FileCheck2 size={27} />
-              </div>
+              {status === "processing" && (
+                <LoadingState />
+              )}
 
-              <span className="success-kicker">
-                APPROVED
-              </span>
+              {status === "review" &&
+                reviewData && (
+                  <>
+                    <ReviewPanel
+                      original={
+                        reviewData.original
+                      }
+                      proposed={
+                        reviewData.proposed
+                      }
+                      explanation={
+                        reviewData.explanation
+                      }
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      loading={loading}
+                      evidenceRequired={Boolean(
+                        evidenceAnalysis?.requiresEvidence,
+                      )}
+                    />
 
-              <h2>Change approved</h2>
+                    {showEvidenceQuestion && (
+                      <MetricQuestion
+                        metric={metric}
+                        onChange={setMetric}
+                        onSubmit={
+                          handleMetricSubmit
+                        }
+                        loading={loading}
+                        unsupportedClaims={
+                          evidenceAnalysis?.unsupportedClaims ||
+                          []
+                        }
+                      />
+                    )}
+                  </>
+                )}
 
-              <p>
-                Your reviewed resume bullet was
-                successfully approved in SuperDocs.
-              </p>
+              {status === "completed" && (
+                <div className="success-card">
+                  <div className="success-icon">
+                    <FileCheck2 size={27} />
+                  </div>
 
-              <button
-                type="button"
-                className="primary-button"
-                onClick={reset}
-              >
-                Rewrite another bullet
-                <Sparkles size={16} />
-              </button>
-            </div>
-          )}
+                  <span className="success-kicker">
+                    APPROVED
+                  </span>
 
-          {status === "rejected" && (
-            <div className="success-card rejected-card">
-              <div className="success-icon rejected-icon">
-                <RotateCcw size={27} />
-              </div>
+                  <h2>Change approved</h2>
 
-              <span className="success-kicker">
-                REVIEWED
-              </span>
+                  <p>
+                    Your reviewed resume bullet was
+                    successfully approved in
+                    SuperDocs.
+                  </p>
 
-              <h2>Change rejected</h2>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={reset}
+                  >
+                    Rewrite another bullet
+                    <Sparkles size={16} />
+                  </button>
+                </div>
+              )}
 
-              <p>
-                The proposed change was rejected and
-                was not applied to the document.
-              </p>
+              {status === "rejected" && (
+                <div className="success-card rejected-card">
+                  <div className="success-icon rejected-icon">
+                    <RotateCcw size={27} />
+                  </div>
 
-              <button
-                type="button"
-                className="primary-button"
-                onClick={reset}
-              >
-                Try another bullet
-                <RotateCcw size={16} />
-              </button>
-            </div>
-          )}
+                  <span className="success-kicker">
+                    REVIEWED
+                  </span>
 
-          {error && (
-            <div className="error-card">
-              <div className="error-indicator" />
+                  <h2>Change rejected</h2>
 
-              <div>
-                <strong>
-                  Something went wrong
-                </strong>
+                  <p>
+                    The proposed change was
+                    rejected and was not applied
+                    to the document.
+                  </p>
 
-                <p>{error}</p>
-              </div>
-            </div>
-          )}
-        </section>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={reset}
+                  >
+                    Try another bullet
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div className="error-card">
+                  <div className="error-indicator" />
+
+                  <div>
+                    <strong>
+                      Something went wrong
+                    </strong>
+
+                    <p>{error}</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </main>
     </div>
   );
